@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>計算練習アプリ（初級）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f2;
+      --surface: #ffffff;
+      --border: rgba(0,0,0,0.12);
+      --border-md: rgba(0,0,0,0.25);
+      --text: #1a1a18;
+      --text-sub: #6b6b67;
+      --text-hint: #9a9a96;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --blue-bg: #e6f1fb;
+      --blue-text: #0c447c;
+      --purple-bg: #eeedfe;
+      --purple-text: #3c3489;
+      --teal-bg: #e1f5ee;
+      --teal-text: #085041;
+      --green: #1d9e75;
+      --amber: #ef9f27;
+      --red: #e24b4a;
+      --red-light: #fcebeb;
+      --green-light: #eaf3de;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --surface: #2a2a28;
+        --border: rgba(255,255,255,0.1);
+        --border-md: rgba(255,255,255,0.22);
+        --text: #f0ede8;
+        --text-sub: #a0a09a;
+        --text-hint: #6a6a66;
+        --blue-bg: #042c53;
+        --blue-text: #b5d4f4;
+        --purple-bg: #26215c;
+        --purple-text: #cec bf6;
+        --teal-bg: #04342c;
+        --teal-text: #9fe1cb;
+        --red-light: #501313;
+        --green-light: #173404;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .app-title {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ---- Setup ---- */
+    .setup-desc {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.8;
+      margin-bottom: 1.25rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-a { background: var(--blue-bg); color: var(--blue-text); }
+    .badge-b { background: var(--purple-bg); color: var(--purple-text); }
+    .badge-c { background: var(--teal-bg); color: var(--teal-text); }
+    .badge-d { background: #faeeda; color: #633806; }
+    .badge-e { background: #faece7; color: #712b13; }
+    .badge-f { background: #eaf3de; color: #27500a; }
+
+    .stat-cell { background: var(--bg); border-radius: var(--radius-md); padding: 8px 6px; }
+    .stat-label { font-size: 11px; color: var(--text-hint); margin-bottom: 3px; }
+    .stat-val { font-size: 15px; font-weight: 500; color: var(--text); }
+    .check-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+    .check-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .check-row:hover { background: var(--bg); }
+    .check-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #185fa5; flex-shrink: 0; }
+    .check-desc { font-size: 13px; color: var(--text-sub); }
+
+    .setup-label {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .time-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    input[type="number"].time-input {
+      width: 90px;
+      padding: 9px 12px;
+      font-size: 17px;
+      text-align: center;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      color: var(--text);
+      -moz-appearance: textfield;
+    }
+    input[type="number"].time-input::-webkit-outer-spin-button,
+    input[type="number"].time-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type="number"].time-input:focus { outline: none; border-color: #378add; }
+
+    .time-unit { font-size: 14px; color: var(--text-sub); }
+
+    /* ---- Buttons ---- */
+    .btn {
+      width: 100%;
+      padding: 11px;
+      font-size: 15px;
+      font-weight: 500;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:hover { background: var(--bg); }
+    .btn:active { transform: scale(0.98); }
+    .btn.primary {
+      background: #185fa5;
+      color: #e6f1fb;
+      border-color: #185fa5;
+    }
+    .btn.primary:hover { background: #0c447c; }
+
+    /* ---- Quiz ---- */
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    .timer-bg {
+      background: var(--bg);
+      border-radius: 4px;
+      height: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .timer-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--green);
+      transition: width 0.1s linear, background 0.3s;
+    }
+
+    .q-type-wrap {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .question-display {
+      font-size: 30px;
+      font-weight: 500;
+      text-align: center;
+      padding: 1.25rem 0 0.5rem;
+      letter-spacing: 1px;
+      color: var(--text);
+    }
+
+    .hint-text {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-hint);
+      margin-bottom: 0.75rem;
+      min-height: 16px;
+    }
+
+    .feedback {
+      text-align: center;
+      font-size: 13px;
+      height: 22px;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .feedback.correct { color: var(--green); }
+    .feedback.wrong { color: var(--red); }
+
+    input.answer-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 22px;
+      text-align: center;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      color: var(--text);
+      margin-bottom: 1rem;
+      -moz-appearance: textfield;
+    }
+    input.answer-input::-webkit-outer-spin-button,
+    input.answer-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input.answer-input:focus { outline: none; border-color: #378add; }
+
+    /* ---- Result ---- */
+    .result-summary {
+      text-align: center;
+      padding: 1.5rem 0 1rem;
+    }
+    .score-big {
+      font-size: 52px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .score-denom {
+      font-size: 26px;
+      color: var(--text-sub);
+      font-weight: 400;
+    }
+    .score-msg {
+      font-size: 14px;
+      color: var(--text-sub);
+      margin-top: 6px;
+    }
+
+    .wrong-section-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .wrong-item {
+      border-left: 3px solid var(--red);
+      padding-left: 12px;
+      margin-bottom: 14px;
+    }
+    .wrong-q {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .wrong-detail {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+    .wrong-ua { color: var(--red); font-weight: 500; }
+    .wrong-ca { color: var(--green); font-weight: 500; }
+
+    .all-correct-msg {
+      text-align: center;
+      font-size: 14px;
+      color: var(--green);
+      padding: 1rem 0;
+      font-weight: 500;
+    }
+
+    @media (max-width: 400px) {
+      .question-display { font-size: 24px; }
+      .score-big { font-size: 42px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Setup -->
+  <div id="setup-screen" class="screen active">
+    <div class="app-title">計算練習アプリ（初級）</div>
+    <div class="card">
+      <div class="setup-label" style="margin-bottom:10px;">出題する問題を選ぶ（1つ以上）</div>
+      <div class="check-list">
+        <label class="check-row"><input type="checkbox" value="0" checked><span class="badge badge-a">A</span><span class="check-desc">三桁 × 二桁</span></label>
+        <label class="check-row"><input type="checkbox" value="1" checked><span class="badge badge-b">B</span><span class="check-desc">三桁 − 三桁 ＋ 三桁</span></label>
+        <label class="check-row"><input type="checkbox" value="2" checked><span class="badge badge-c">C</span><span class="check-desc">○.○○ ÷ ○.○（小数点以下2桁）</span></label>
+        <label class="check-row"><input type="checkbox" value="3" checked><span class="badge badge-d">D</span><span class="check-desc">（二桁 − 二桁）÷ ○.○（小数点以下2桁）</span></label>
+        <label class="check-row"><input type="checkbox" value="4" checked><span class="badge badge-e">E</span><span class="check-desc">1〜9 × 1〜9 × 3.14 ÷ 2〜6（小数点以下2桁）</span></label>
+        <label class="check-row"><input type="checkbox" value="5" checked><span class="badge badge-f">F</span><span class="check-desc">二桁 × 二桁 × 二桁</span></label>
+      </div>
+      <div id="check-error" style="display:none;font-size:12px;color:#e24b4a;margin-bottom:10px;">最低1つ選んでください</div>
+      <label class="setup-label" for="time-limit-input" style="margin-top:1rem;">1問あたりの制限時間</label>
+      <div class="time-row">
+        <input type="number" class="time-input" id="time-limit-input" value="30" min="5" max="600">
+        <span class="time-unit">秒</span>
+      </div>
+      <button class="btn primary" onclick="startQuiz()">スタート</button>
+    </div>
+  </div>
+
+  <!-- Quiz -->
+  <div id="quiz-screen" class="screen">
+    <div class="meta-row">
+      <span id="q-counter">問題 1 / 8</span>
+      <span>残り <b id="timer-sec">30</b> 秒</span>
+    </div>
+    <div class="timer-bg"><div class="timer-bar" id="timer-bar"></div></div>
+    <div class="card">
+      <div class="q-type-wrap" id="q-type-badge"></div>
+      <div class="question-display" id="question-text"></div>
+      <div class="hint-text" id="hint-text"></div>
+    </div>
+    <div class="feedback" id="feedback-msg"></div>
+    <input type="number" class="answer-input" id="answer-input" placeholder="答えを入力" step="any" autocomplete="off">
+    <button class="btn primary" onclick="submitAnswer()">答える（Enter）</button>
+  </div>
+
+  <!-- Result -->
+  <div id="result-screen" class="screen">
+    <div class="card">
+      <div class="result-summary">
+        <div class="score-big" id="score-correct">0<span class="score-denom"> / 8</span></div>
+        <div id="result-rank" style="font-size:42px;font-weight:500;letter-spacing:2px;margin:6px 0 2px;color:var(--text);"></div>
+        <div class="score-msg" id="result-msg"></div>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div class="stat-cell"><div class="stat-label">合計時間</div><div class="stat-val" id="total-time-display">-</div></div>
+          <div class="stat-cell"><div class="stat-label">平均解答時間</div><div class="stat-val" id="avg-time-display">-</div></div>
+          <div class="stat-cell"><div class="stat-label">ベストタイム</div><div class="stat-val" id="best-time-display">-</div></div>
+          <div class="stat-cell"><div class="stat-label">最高ランク</div><div class="stat-val" id="best-rank-display">-</div></div>
+          <div class="stat-cell"><div class="stat-label">ランク平均</div><div class="stat-val" id="avg-rank-display">-</div></div>
+          <div class="stat-cell"><div class="stat-label">挑戦回数</div><div class="stat-val" id="play-count-display">-</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="wrong-section" style="display:none;">
+      <div class="wrong-section-title">間違えた問題</div>
+      <div id="wrong-list"></div>
+    </div>
+    <div id="all-correct-section" style="display:none;" class="all-correct-msg">全問正解！素晴らしい！</div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:1.25rem;">
+      <button class="btn primary" onclick="goSetup()">もう一度挑戦する</button>
+      <button class="btn" style="color:#e24b4a;border-color:#e24b4a;white-space:nowrap;" onclick="confirmReset()">記録リセット</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let questions = [], currentQ = 0, answers = [];
+  let timerInterval = null, timeLeft = 30, totalTime = 30;
+  let quizStartTime = 0, questionStartTime = 0;
+
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function getSelectedTypes() {
+    return Array.from(document.querySelectorAll('.check-list input[type=checkbox]:checked'))
+      .map(cb => parseInt(cb.value));
+  }
+
+  function makeQuestions() {
+    const selected = getSelectedTypes();
+    const pool = [];
+    // 選んだ種類を均等に8問分配
+    for (let i = 0; i < 8; i++) {
+      pool.push(selected[i % selected.length]);
+    }
+    pool.sort(() => Math.random() - 0.5);
+    return pool.map(t => genQByType(t));
+  }
+
+  function genQByType(type) {
+    if (type === 0) {
+      const a = rand(100, 999), b = rand(10, 99);
+      return { type: 'A', label: '三桁×二桁', text: `${a} × ${b}`, answer: a * b, hint: '' };
+    } else if (type === 1) {
+      const a = rand(100, 999), c = rand(100, 999);
+      const b = rand(100, Math.min(999, a + c));
+      return { type: 'B', label: '三桁－三桁＋三桁', text: `${a} − ${b} + ${c}`, answer: a - b + c, hint: '' };
+    } else if (type === 2) {
+      const divisor = (rand(1, 9) / 10).toFixed(1);
+      const ans = rand(10, 99) / 100;
+      const dividend = parseFloat((ans * parseFloat(divisor)).toFixed(4));
+      const dStr = dividend.toFixed(2);
+      const correct = Math.round(parseFloat(dStr) / parseFloat(divisor) * 100) / 100;
+      return { type: 'C', label: '小数÷小数', text: `${dStr} ÷ ${divisor}`, answer: correct, hint: '小数点以下2桁まで（概数）' };
+    } else if (type === 3) {
+      const divisor = (rand(1, 9) / 10).toFixed(1);
+      let a = rand(10, 99), b = rand(10, 99);
+      if (a < b) [a, b] = [b, a];
+      if (a === b) a = Math.min(99, a + rand(1, 5));
+      const diff = a - b;
+      const correct = Math.round(diff / parseFloat(divisor) * 100) / 100;
+      return { type: 'D', label: '(二桁−二桁)÷小数', text: `(${a} − ${b}) ÷ ${divisor}`, answer: correct, hint: '小数点以下2桁まで（概数）' };
+    } else if (type === 4) {
+      const p = rand(1, 9), q = rand(1, 9), r = rand(2, 6);
+      const correct = Math.round(p * q * 3.14 / r * 100) / 100;
+      return { type: 'E', label: '×3.14÷整数', text: `${p} × ${q} × 3.14 ÷ ${r}`, answer: correct, hint: '小数点以下2桁まで（概数）' };
+    } else {
+      const a = rand(10, 99), b = rand(10, 99), c = rand(10, 99);
+      return { type: 'F', label: '二桁×二桁×二桁', text: `${a} × ${b} × ${c}`, answer: a * b * c, hint: '' };
+    }
+  }
+
+  function startQuiz() {
+    const selected = getSelectedTypes();
+    const errEl = document.getElementById('check-error');
+    if (selected.length === 0) { errEl.style.display = 'block'; return; }
+    errEl.style.display = 'none';
+    totalTime = Math.max(5, parseInt(document.getElementById('time-limit-input').value) || 30);
+    questions = makeQuestions();
+    currentQ = 0;
+    answers = [];
+    quizStartTime = Date.now();
+    showScreen('quiz-screen');
+    showQuestion();
+  }
+
+  function showQuestion() {
+    const q = questions[currentQ];
+    document.getElementById('q-counter').textContent = `問題 ${currentQ + 1} / 8`;
+    const cls = { A: 'badge-a', B: 'badge-b', C: 'badge-c', D: 'badge-d', E: 'badge-e', F: 'badge-f' }[q.type];
+    document.getElementById('q-type-badge').innerHTML = `<span class="badge ${cls}">${q.type}: ${q.label}</span>`;
+    document.getElementById('question-text').textContent = q.text + ' = ?';
+    document.getElementById('hint-text').textContent = q.hint;
+    document.getElementById('answer-input').value = '';
+    document.getElementById('feedback-msg').textContent = '';
+    document.getElementById('feedback-msg').className = 'feedback';
+    document.getElementById('answer-input').focus();
+    questionStartTime = Date.now();
+    startTimer();
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    timeLeft = totalTime;
+    updateTimerUI();
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      updateTimerUI();
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        recordAnswer(null, true);
+      }
+    }, 1000);
+  }
+
+  function updateTimerUI() {
+    document.getElementById('timer-sec').textContent = timeLeft;
+    const pct = (timeLeft / totalTime) * 100;
+    const bar = document.getElementById('timer-bar');
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 40 ? '#1d9e75' : pct > 20 ? '#ef9f27' : '#e24b4a';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('quiz-screen').classList.contains('active')) {
+      submitAnswer();
+    }
+  });
+
+  function submitAnswer() {
+    const val = document.getElementById('answer-input').value.trim();
+    if (val === '') return;
+    clearInterval(timerInterval);
+    recordAnswer(parseFloat(val), false);
+  }
+
+  function recordAnswer(userVal, timeout) {
+    const q = questions[currentQ];
+    const timeSpent = Math.round((Date.now() - questionStartTime) / 1000);
+    let isCorrect = false;
+    if (!timeout && userVal !== null) {
+      const needsDecimal = ['C','D','E'].includes(q.type);
+      isCorrect = needsDecimal
+        ? Math.abs(userVal - q.answer) < 0.005
+        : userVal === q.answer;
+    }
+    answers.push({ q, userVal, isCorrect, timeout, timeSpent });
+
+    const fb = document.getElementById('feedback-msg');
+    if (isCorrect) {
+      fb.textContent = '正解！'; fb.className = 'feedback correct';
+    } else if (timeout) {
+      fb.textContent = '時間切れ！'; fb.className = 'feedback wrong';
+    } else {
+      fb.textContent = '不正解…'; fb.className = 'feedback wrong';
+    }
+
+    setTimeout(() => {
+      currentQ++;
+      currentQ < 8 ? showQuestion() : showResult();
+    }, 700);
+  }
+
+  function showResult() {
+    showScreen('result-screen');
+    const correct = answers.filter(a => a.isCorrect).length;
+    const num = document.getElementById('score-correct');
+    num.innerHTML = `${correct}<span class="score-denom"> / 8</span>`;
+    const grades = [
+      { rank: 'C-', msg: 'まずは基礎から！' },
+      { rank: 'C',  msg: '少しずつ慣れていこう' },
+      { rank: 'C+', msg: 'もう少しで次のランク！' },
+      { rank: 'B-', msg: 'いい調子になってきた' },
+      { rank: 'B',  msg: '平均以上！この調子で' },
+      { rank: 'B+', msg: 'なかなかやるね！' },
+      { rank: 'A-', msg: '上位クラス入り！' },
+      { rank: 'A',  msg: 'すごい！ほぼ完璧' },
+      { rank: 'A+', msg: '超高精度！' },
+      { rank: 'S',  msg: '達人の域に達した' },
+      { rank: 'S+', msg: '満点でも秒で解いた？' },
+      { rank: 'SS', msg: '伝説！' },
+    ];
+    const totalSec2 = Math.round((Date.now() - quizStartTime) / 1000);
+    let gradeIdx;
+    if (correct <= 2) gradeIdx = correct === 0 ? 0 : correct === 1 ? 1 : 2;
+    else if (correct <= 5) gradeIdx = correct + 0;
+    else if (correct === 6) gradeIdx = 6;
+    else if (correct === 7) gradeIdx = 7;
+    else {
+      // 全問正解: 時間で S / S+ / SS を分ける
+      const perQ = totalSec2 / 8;
+      gradeIdx = perQ <= 10 ? 11 : perQ <= 20 ? 10 : 9;
+    }
+    const grade = grades[gradeIdx];
+    const rankEl = document.getElementById('result-rank');
+    rankEl.textContent = grade.rank;
+    const rankColors = { 'C-':'#888780','C':'#888780','C+':'#888780','B-':'#185fa5','B':'#185fa5','B+':'#185fa5','A-':'#1d9e75','A':'#1d9e75','A+':'#1d9e75','S':'#ba7517','S+':'#993c1d','SS':'#a32d2d' };
+    rankEl.style.color = rankColors[grade.rank] || 'var(--text)';
+    document.getElementById('result-msg').textContent = grade.msg;
+
+    const totalSec = Math.round((Date.now() - quizStartTime) / 1000);
+    const fmtTime = sec => { const m = Math.floor(sec/60), s = sec%60; return m > 0 ? `${m}分${s}秒` : `${s}秒`; };
+    document.getElementById('total-time-display').textContent = fmtTime(totalSec);
+
+    const avgSec = answers.length > 0 ? Math.round(answers.reduce((s,a) => s + a.timeSpent, 0) / answers.length * 10) / 10 : 0;
+    document.getElementById('avg-time-display').textContent = avgSec + '秒';
+
+    const bestKey = 'mathQuizBestTime';
+    const prevBest = parseFloat(localStorage.getItem(bestKey) || '0');
+    let bestSec = prevBest;
+    const isBest = correct >= 5 && totalSec > 0 && (prevBest === 0 || totalSec < prevBest);
+    if (isBest) { bestSec = totalSec; localStorage.setItem(bestKey, totalSec); }
+    const bestEl = document.getElementById('best-time-display');
+    bestEl.textContent = bestSec > 0 ? fmtTime(bestSec) : '-';
+    if (isBest) { bestEl.style.color = '#ba7517'; bestEl.title = '新記録！'; }
+    else { bestEl.style.color = 'var(--text)'; }
+
+    const rankOrder = ['C-','C','C+','B-','B','B+','A-','A','A+','S','S+','SS'];
+    const rankColors2 = { 'C-':'#888780','C':'#888780','C+':'#888780','B-':'#185fa5','B':'#185fa5','B+':'#185fa5','A-':'#1d9e75','A':'#1d9e75','A+':'#1d9e75','S':'#ba7517','S+':'#993c1d','SS':'#a32d2d' };
+    const histKey = 'mathQuizRankHistory';
+    const hist = JSON.parse(localStorage.getItem(histKey) || '[]');
+    hist.push(rankOrder.indexOf(grade.rank));
+    localStorage.setItem(histKey, JSON.stringify(hist));
+
+    const bestRankIdx = Math.max(...hist);
+    const bestRank = rankOrder[bestRankIdx];
+    const bestRankEl = document.getElementById('best-rank-display');
+    bestRankEl.textContent = bestRank;
+    bestRankEl.style.color = rankColors2[bestRank] || 'var(--text)';
+
+    const avgRankIdx = Math.round(hist.reduce((a,b) => a+b, 0) / hist.length);
+    const avgRank = rankOrder[Math.min(avgRankIdx, 11)];
+    const avgRankEl = document.getElementById('avg-rank-display');
+    avgRankEl.textContent = avgRank;
+    avgRankEl.style.color = rankColors2[avgRank] || 'var(--text)';
+
+    document.getElementById('play-count-display').textContent = hist.length + '回';
+
+    const wrongs = answers.filter(a => !a.isCorrect);
+    if (wrongs.length > 0) {
+      document.getElementById('wrong-section').style.display = 'block';
+      document.getElementById('all-correct-section').style.display = 'none';
+      document.getElementById('wrong-list').innerHTML = wrongs.map(a => {
+        const ua = a.timeout ? '（時間切れ）' : a.userVal === null ? '（未回答）' : a.userVal;
+        const needsDecimal = ['C','D','E'].includes(a.q.type);
+        const ca = needsDecimal ? a.q.answer.toFixed(2) : a.q.answer;
+        return `<div class="wrong-item">
+          <div class="wrong-q">${a.q.text} = ?</div>
+          <div class="wrong-detail">あなた: <span class="wrong-ua">${ua}</span>　正解: <span class="wrong-ca">${ca}</span></div>
+        </div>`;
+      }).join('');
+    } else {
+      document.getElementById('wrong-section').style.display = 'none';
+      document.getElementById('all-correct-section').style.display = 'block';
+    }
+  }
+
+  function confirmReset() {
+    if (confirm('記録をリセットしますか？\nベストタイム・最高ランク・ランク平均・挑戦回数がすべて消えます。')) {
+      localStorage.removeItem('mathQuizBestTime');
+      localStorage.removeItem('mathQuizRankHistory');
+      document.getElementById('best-time-display').textContent = '-';
+      document.getElementById('best-rank-display').textContent = '-';
+      document.getElementById('avg-rank-display').textContent = '-';
+      document.getElementById('play-count-display').textContent = '-';
+      document.getElementById('best-time-display').style.color = 'var(--text)';
+      document.getElementById('best-rank-display').style.color = 'var(--text)';
+      document.getElementById('avg-rank-display').style.color = 'var(--text)';
+    }
+  }
+
+  function goSetup() { showScreen('setup-screen'); }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+</script>
+</body>
+</html>
