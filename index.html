@@ -7,12 +7,14 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<script src="main.js"></script>
 <div class="app">
 
   <!-- Setup -->
   <div id="setup-screen" class="screen active">
-    <div class="app-title">計算練習アプリ（初級）</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <div class="app-title" style="margin-bottom:0;">計算練習アプリ（初級）</div>
+      <button type="button" class="btn" style="font-size:12px;padding:5px 12px;width:auto;" onclick="showScreen('collection-screen')">🏅 バッジ</button>
+    </div>
     <div class="card">
       <div class="setup-label" style="margin-bottom:10px;">出題する問題を選ぶ（1つ以上）</div>
       <div class="check-list">
@@ -24,7 +26,17 @@
         <label class="check-row"><input type="checkbox" value="5" checked><span class="badge badge-f">F</span><span class="check-desc">二桁 × 二桁 × 二桁</span></label>
       </div>
       <div id="check-error" style="display:none;font-size:12px;color:#e24b4a;margin-bottom:10px;">最低1つ選んでください</div>
-      <label class="setup-label" for="time-limit-input" style="margin-top:1rem;">1問あたりの制限時間</label>
+      <div class="hard-toggle-row" id="hard-toggle-row">
+        <div>
+          <div class="hard-toggle-label">☆難問コース☆</div>
+          <div class="hard-toggle-sub">難解問題のみ・40秒固定</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="hard-mode-toggle" onchange="onHardToggle()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <label class="setup-label" for="time-limit-input" style="margin-top:0.5rem;" id="time-label">1問あたりの制限時間</label>
       <div class="time-row">
         <input type="number" class="time-input" id="time-limit-input" value="30" min="5" max="600">
         <span class="time-unit">秒</span>
@@ -32,18 +44,21 @@
       <button class="btn primary" onclick="startQuiz()">スタート</button>
     </div>
 
+    <script src="math.js"></script>
+
     <!-- 記録パネル -->
     <div class="card" id="setup-stats-card">
-      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;">📊 記録</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;"> 記録</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
         <div class="stat-cell"><div class="stat-label">ベストタイム</div><div class="stat-val" id="s-best-time">-</div></div>
         <div class="stat-cell"><div class="stat-label">最高ランク</div><div class="stat-val" id="s-best-rank">-</div></div>
         <div class="stat-cell"><div class="stat-label">ランク平均</div><div class="stat-val" id="s-avg-rank">-</div></div>
         <div class="stat-cell"><div class="stat-label">挑戦回数</div><div class="stat-val" id="s-play-count">-</div></div>
-        <div class="stat-cell" style="grid-column:span 2;"><div class="stat-label">Math Point</div><div class="stat-val"><span id="s-mp-total">0</span> MP</div></div>
+        <div class="stat-cell"><div class="stat-label">Math Point</div><div class="stat-val"><span id="s-mp-total">0</span> MP</div></div>
+        <div class="stat-cell"><div class="stat-label">Gacha Point</div><div class="stat-val" style="color:#ba7517;"><span id="s-gp-total">0</span> GP</div></div>
       </div>
       <div class="mp-bar-bg" style="margin-bottom:6px;"><div class="mp-bar-fill" id="s-mp-bar" style="width:0%"></div></div>
-      <button class="btn primary" id="s-slot-btn" style="display:none;" onclick="openSlot()">🎰 スロットを回す（50MP消費）</button>
+      <button class="btn primary" id="s-slot-btn" style="display:none;" onclick="openSlot()">🎰 スロットを回す</button>
     </div>
   </div>
 
@@ -51,8 +66,12 @@
   <div id="quiz-screen" class="screen">
     <div class="meta-row">
       <span id="q-counter">問題 1 / 8</span>
-      <span>残り <b id="timer-sec">30</b> 秒</span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        <span>残り <b id="timer-sec">30</b> 秒</span>
+        <button type="button" onclick="showQuitConfirm()" style="font-size:11px;padding:3px 9px;border:0.5px solid var(--border-md);border-radius:20px;background:transparent;color:var(--text-sub);cursor:pointer;">やめる</button>
+      </span>
     </div>
+    <div id="hard-banner" class="hard-mode-banner" style="display:none;">🔥 難問コース</div>
     <div class="timer-bg"><div class="timer-bar" id="timer-bar"></div></div>
     <div class="card">
       <div class="q-type-wrap" id="q-type-badge"></div>
@@ -62,6 +81,13 @@
     <div class="feedback" id="feedback-msg"></div>
     <input type="number" class="answer-input" id="answer-input" placeholder="答えを入力" step="any" autocomplete="off">
     <button class="btn primary" onclick="submitAnswer()">答える（Enter）</button>
+    <div id="quit-confirm" style="display:none;margin-top:10px;background:var(--bg);border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:12px;text-align:center;">
+      <div style="font-size:14px;color:var(--text);margin-bottom:10px;">途中でやめますか？<br><span style="font-size:12px;color:var(--text-sub);">ポイントや記録は反映されません</span></div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button type="button" class="btn" style="color:#e24b4a;border-color:#e24b4a;flex:1;" onclick="doQuit()">やめる</button>
+        <button type="button" class="btn" style="flex:1;" onclick="hideQuitConfirm()">続ける</button>
+      </div>
+    </div>
   </div>
 
   <!-- Result -->
@@ -93,7 +119,9 @@
       </div>
       <div class="mp-bar-bg"><div class="mp-bar-fill" id="mp-bar" style="width:0%"></div></div>
       <div class="mp-earn" id="mp-earn"></div>
-      <button class="btn primary" id="slot-btn" style="margin-top:10px;display:none;" onclick="openSlot()">🎰 スロットを回す（50MP消費）</button>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-sub);">GP：<b id="gp-total" style="color:#ba7517;">0</b></div>
+      <div id="new-badges-area" style="display:none;margin-top:8px;"></div>
+      <button class="btn primary" id="slot-btn" style="margin-top:10px;display:none;" onclick="openSlot()">🎰 スロットを回す</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:0.75rem;">
       <button class="btn primary" onclick="goSetup()">もう一度挑戦する</button>
@@ -101,10 +129,26 @@
     </div>
   </div>
 
+  <!-- Collection Screen -->
+  <div id="collection-screen" class="screen">
+    <div class="coll-nav">
+      <button type="button" class="coll-nav-back" onclick="goSetup()">← 戻る</button>
+      <span style="font-size:16px;font-weight:500;color:var(--text);">🏅 バッジコレクション</span>
+    </div>
+    <div class="badge-grid" id="badge-grid"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="new-unlock-toast" id="unlock-toast"></div>
+
   <!-- Slot Modal -->
   <div class="slot-modal" id="slot-modal" style="display:none;">
     <div class="slot-box">
-      <div class="slot-title">🎰 スロット</div>
+      <div class="slot-tab-row">
+        <button class="slot-tab active" id="tab-small" onclick="switchSlotTab('small')">🎰 通常（50MP）</button>
+        <button class="slot-tab" id="tab-big" onclick="switchSlotTab('big')" disabled>👑 豪華（100GP）</button>
+      </div>
+      <div class="slot-title" id="slot-title-label">1〜5 × 3</div>
       <div class="slot-reels">
         <div class="slot-reel" id="reel0"><div class="slot-reel-inner" id="reel-inner0"></div></div>
         <div class="slot-reel" id="reel1"><div class="slot-reel-inner" id="reel-inner1"></div></div>
@@ -112,15 +156,13 @@
       </div>
       <div class="bingo-bottle" id="bingo-bottle" style="display:none;">🍾</div>
       <div class="slot-result-msg" id="slot-result-msg"></div>
-      <button class="btn primary" id="slot-spin-btn" onclick="spinSlot()">回す！</button>
+      <div class="gp-earn" id="slot-gp-earn"></div>
+      <div class="gp-display">GP：<b id="slot-gp-total">0</b></div>
+      <button class="btn primary" id="slot-spin-btn" onclick="spinSlot()" style="margin-top:10px;">回す！</button>
       <button class="btn slot-close" onclick="closeSlot()" id="slot-close-btn" style="display:none;margin-top:8px;">閉じる</button>
     </div>
   </div>
 
 </div>
-
-<script>
-
-</script>
 </body>
 </html>
